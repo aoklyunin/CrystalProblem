@@ -1,5 +1,3 @@
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -7,12 +5,10 @@ import java.util.stream.Stream;
 /**
  * Created by aokly on 17.08.2017.
  */
-public class PriceAdmin {
-
+class PriceAdmin {
 
     private static HashSet<Price> splitPrice(Price price, Date date) {
-        //System.out.println(price.getBegin() + ";" + price.getEnd() + ";" + date);
-        // если дата не попадает в период использования цены
+        // если дата не попадает в период использования цены или совпадает с границей
         if (price.getBegin().compareTo(date) * price.getEnd().compareTo(date) > 0 || price.getBegin().equals(date) || price.getEnd().equals(date))
             return new HashSet<>();
         else
@@ -22,18 +18,15 @@ public class PriceAdmin {
             ));
     }
 
-    public static void splitOneByOther(Collection<Price> one, Collection<Price> other) {
+    // пересечение одной коллекции другой
+    static void splitOneByOther(Collection<Price> one, Collection<Price> other) {
         for (Price np : one) {
             HashSet<Price> tmpPrices = new HashSet<>();
             HashSet<Price> toDelete = new HashSet<>();
             for (Price op : other) {
-                //     System.out.println(">"+np+"-"+op);
                 if (np.claimCrossed(op)) {
-                    //       System.out.println("claimed");
                     HashSet<Price> s2 = new HashSet<>();
                     HashSet<Price> s1 = splitPrice(op, np.getBegin());
-                    //System.out.println(np+" "+op);
-                    //System.out.println(s1);
                     if (s1.isEmpty()) {
                         s2 = splitPrice(op, np.getEnd());
                     } else {
@@ -46,24 +39,15 @@ public class PriceAdmin {
                         }
                         s1.removeAll(toDeleteTmp);
                     }
-                    System.out.println("s1: " + s1);
-                    System.out.println("s2: " + s2);
-                    System.out.println("tmp before: " + tmpPrices);
                     tmpPrices.addAll(s1);
                     tmpPrices.addAll(s2);
-                    System.out.println("tmp: " + tmpPrices);
 
                     if (!(s1.isEmpty() && s2.isEmpty()))
                         toDelete.add(op);
                 }
             }
-            System.out.println("one: " + one);
-            System.out.println("toDelete: " + toDelete);
-            System.out.println("other before delete: " + other);
             other.removeAll(toDelete);
-            System.out.println("other after delete: " + other);
             other.addAll(tmpPrices);
-            System.out.println("other after add: " + other);
         }
     }
 
@@ -85,48 +69,28 @@ public class PriceAdmin {
         }
     }
 
-
-    public static Map<SubPrice, List<Price>> splitPrices(LinkedList<Price> oldPrices, LinkedList<Price> newPrices) {
-        // System.out.println(oldPrices);
-        // System.out.println(newPrices);
-        //System.out.println("__________________");
+    private static Map<SubPrice, List<Price>> splitPrices(LinkedList<Price> oldPrices, LinkedList<Price> newPrices) {
         // разбиваем старые цены новыми
-        dispPrices(newPrices, "Новые");
-        dispPrices(oldPrices, "Старые");
-        System.out.println("Разделение");
         splitOneByOther(newPrices, oldPrices);
-        System.out.println("_____________________________");
+        // разбиваем новые цены старыми
         splitOneByOther(oldPrices, newPrices);
-        Collections.sort(newPrices, Price.getComparator());
-        dispPrices(newPrices, "Новые");
-        dispPrices(oldPrices, "Старые");
-
-
-        // System.out.println("processed");
-        // System.out.println(oldPrices);
-        //   System.out.println(newPrices);
-
         // в старых ценах оставляем только те, которых нет среди новых
         // в проверке на равенство значение цены(value) не учитывается,
         // небольшой чит, иначе пришлось бы писать больший объём кода.
         oldPrices.removeAll(newPrices);
 
-        dispPrices(oldPrices, "После удаления старые");
-
-
         // объединяем две коллекции цен в отсортированном порядке
         HashMap<SubPrice, List<Price>> res = new HashMap<>((Stream.concat(newPrices.stream(), oldPrices.stream())).map(p -> new AbstractMap.SimpleEntry<>(new SubPrice(p), p)).
                 collect(Collectors.groupingBy(Map.Entry::getKey,
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList()))));
-
+        // сортируем списки, лежащие в словарях для объединения
         for (Map.Entry<SubPrice, List<Price>> e : res.entrySet()) {
             e.getValue().sort(Comparator.comparing(Price::getBegin));
         }
-        dispMap(res, "словарь");
         return res;
     }
 
-    public static Collection<Price> addNewPrices(Collection<Price> _oldPrices, Collection<Price> _newPrices) {
+    static Collection<Price> addNewPrices(Collection<Price> _oldPrices, Collection<Price> _newPrices) {
         // копируем коллекции, чтобы не испортить данные, пришедшие извне
         LinkedList<Price> oldPrices = new LinkedList<Price>();
         oldPrices.addAll(_oldPrices);
@@ -151,26 +115,24 @@ public class PriceAdmin {
             ps.removeAll(needsToBeDeleted);
             res.addAll(ps);
         }
-        dispPrices(res, "После объединения");
         Collections.sort(res,Price.getComparator());
         return res;
     }
 
+    // класс для ключей словаря
     public static class SubPrice {
         private String product_code; // код товара
         private int number; // номер цены
         private int depart; // номер отдела
 
-        public SubPrice(String product_code, int number, int depart) {
+        SubPrice(String product_code, int number, int depart) {
             this.product_code = product_code;
             this.number = number;
             this.depart = depart;
         }
 
-        public SubPrice(Price p) {
-            this.product_code = p.getProduct_code();
-            this.number = p.getNumber();
-            this.depart = p.getDepart();
+        SubPrice(Price p) {
+            this(p.getProduct_code(),p.getNumber(),p.getDepart());
         }
 
         public String toString() {

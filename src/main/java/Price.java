@@ -1,71 +1,54 @@
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
 
 /**
  * Created by aokly on 17.08.2017.
  */
 public class Price {
 
-    public Date getBegin() {
+    Date getBegin() {
         return begin;
     }
 
-    public Date getEnd() {
+    Date getEnd() {
         return end;
     }
 
-    public long getValue() {
+    long getValue() {
         return value;
     }
 
     // копирование цены с новыми временными границами
-    public Price(Price price, Date begin, Date end) {
+    Price(Price price, Date begin, Date end) {
         this(price.product_code,price.number,price.depart,begin,end,price.value);
     }
-
-/*
-    @Override
-    public String toString() {
-        DateFormat df = new SimpleDateFormat("dd.MM");
-        return "{" +
-                "id=" + id +
-                ", product_code='" + product_code + '\'' +
-                ", number=" + number +
-                ", depart=" + depart +
-                ", begin=" + df.format(begin) +
-                ", end=" + df.format(end) +
-                ", value=" + value +
-                '}';
-    }*/
 
     public String toString(){
         DateFormat df = new SimpleDateFormat("dd.MM");
         return "{"+this.product_code+"|"+this.number+"|"+this.depart+ "[" + df.format(begin) +"-"+ df.format(end)+"] "+this.value+"}";
     }
 
-
-    public boolean claimCrossed(Price price) {
+    // проверяем, стоит ли вообще проверять цены на пересечение
+    boolean claimCrossed(Price price) {
         return this.product_code == price.product_code && this.number == price.number&&this.depart==price.depart&&
                 !(this.begin.equals(price.begin)&&this.end.equals(price.end));
     }
 
-    public void setBegin(Date begin) {
+    void setBegin(Date begin) {
         this.begin = begin;
     }
 
-    public String getProduct_code() {
+    String getProduct_code() {
         return product_code;
     }
 
-    public int getNumber() {
+    int getNumber() {
         return number;
     }
 
-    public int getDepart() {
+    int getDepart() {
         return depart;
     }
 
@@ -85,7 +68,7 @@ public class Price {
 
     private static int uniqueId = 0;
 
-    public static Comparator<Price> getComparator(){
+    static Comparator<Price> getComparator(){
         return new Comparator<Price>() {
             @Override
             public int compare(Price o1, Price o2) {
@@ -113,7 +96,7 @@ public class Price {
         return uniqueId++;
     }
 
-    public Price(long id, String product_code, int number, int depart, Date begin, Date end, long value) {
+    private Price(long id, String product_code, int number, int depart, Date begin, Date end, long value) {
         this.id = id;
         this.product_code = product_code;
         this.number = number;
@@ -123,7 +106,7 @@ public class Price {
         this.value = value;
     }
 
-    public Price(String product_code, int number, int depart, Date begin, Date end, long value) {
+    Price(String product_code, int number, int depart, Date begin, Date end, long value) {
         this(Price.getUniqueId(),product_code,number,depart,begin,end,value);
     }
 
